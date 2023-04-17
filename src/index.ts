@@ -1,8 +1,22 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
-import { MAINNET, DAI_ADDRESS, USDC_ADDRESS, WETH_ADDRESS } from "./constants";
-import { Token, Fetcher } from "@uniswap/sdk";
+import {
+  MAINNET,
+  DAI_ADDRESS,
+  USDC_ADDRESS,
+  WETH_ADDRESS,
+  ONE,
+} from "./constants";
+import {
+  Token,
+  Fetcher,
+  Pair,
+  Route,
+  Trade,
+  TokenAmount,
+  TradeType,
+} from "@uniswap/sdk";
 
 const WETH = new Token(MAINNET, WETH_ADDRESS, 18);
 const DAI = new Token(MAINNET, DAI_ADDRESS, 18);
@@ -31,17 +45,41 @@ export default class UniMonitor {
     this.provider.on("block", this.onNewBlock);
   }
 
-  async onNewBlock(block: string) {
-    console.log(block);
+  async onNewBlock(_block: string) {
     const WETH_DAI = await this.getPairData(WETH, DAI);
     const WETH_USDC = await this.getPairData(WETH, USDC);
 
-    console.log(WETH_DAI);
-    console.log(WETH_USDC);
+    console.log(await this.getPrices(WETH_DAI, WETH));
+    console.log(await this.getPrices(WETH_USDC, WETH));
   }
 
-  async getPairData(tokenA: Token, tokenB: Token) {
+  async getPairData(tokenA: Token, tokenB: Token): Promise<Pair> {
     return await Fetcher.fetchPairData(tokenA, tokenB, this.provider);
+  }
+
+  async getPrices(pair: Pair, inputToken: Token) {
+    const route = new Route([pair], inputToken);
+
+    const trade = new Trade(
+      route,
+      new TokenAmount(inputToken, ONE),
+      TradeType.EXACT_INPUT
+    );
+
+    const executionPrice = trade.executionPrice;
+    const nextExecutionPrice = trade.nextMidPrice;
+
+    const slippagePercent =
+      ((parseFloat(nextExecutionPrice.toSignificant()) -
+        parseFloat(executionPrice.toSignificant())) /
+        parseFloat(executionPrice.toSignificant())) *
+      100;
+
+    return [
+      trade.executionPrice.toSignificant(6),
+      trade.executionPrice.invert().toSignificant(6),
+      slippagePercent,
+    ];
   }
 }
 
