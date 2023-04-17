@@ -1,7 +1,7 @@
 import assert from "assert";
 import UniMonitor from "../"; // Update the path according to your project structure
 import { MAINNET } from "../constants";
-import { Pair, Token, TokenAmount, WETH, Percent } from "@uniswap/sdk";
+import { Pair, Token, TokenAmount, Percent } from "@uniswap/sdk";
 
 describe("calculateArbitrageGain", () => {
   const monitor = new UniMonitor();

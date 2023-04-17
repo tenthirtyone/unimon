@@ -24,6 +24,15 @@ const WETH = new Token(MAINNET, WETH_ADDRESS, 18);
 const DAI = new Token(MAINNET, DAI_ADDRESS, 18);
 const USDC = new Token(MAINNET, USDC_ADDRESS, 6);
 
+/**
+ * This class will monitor the price of WETH -> DAI, WETH -> USDC and DAI -> USDC
+ * It can calculate the potential arbitrage opportunities and slippage amount for
+ * a given amount (ONE Weth in this example). It will update on every new block.
+ *
+ * @export
+ * @class UniMonitor
+ * @typedef {UniMonitor}
+ */
 export default class UniMonitor {
   private provider;
 
@@ -42,11 +51,18 @@ export default class UniMonitor {
     });
   }
 
+  /**
+   * Starts the UniMonitor.
+   */
   start() {
     console.log("UniMonitor Started");
     this.provider.on("block", this.onNewBlock);
   }
 
+  /**
+   * Called when a new block is mined.
+   * @param {string} _block - The block number as a string.
+   */
   async onNewBlock(_block: string) {
     const WETH_DAI = await this.getPairData(WETH, DAI);
     const WETH_USDC = await this.getPairData(WETH, USDC);
@@ -74,10 +90,22 @@ export default class UniMonitor {
     );
   }
 
+  /**
+   * Fetches pair data for two tokens from Uniswap.
+   * @param {Token} tokenA - The first token in the pair.
+   * @param {Token} tokenB - The second token in the pair.
+   * @returns {Promise<Pair>} A promise that resolves to a Pair instance representing the token pair.
+   */
   async getPairData(tokenA: Token, tokenB: Token): Promise<Pair> {
     return await Fetcher.fetchPairData(tokenA, tokenB, this.provider);
   }
 
+  /**
+   * Calculates the current prices of a token against another token in a Uniswap pair.
+   * @param {Pair} pair - The Uniswap pair.
+   * @param {Token} inputToken - The input token for the trade.
+   * @returns {Promise<[string, string, number]>} A promise that resolves to an array containing the execution price, inverted execution price, and slippage percentage.
+   */
   async getPrices(pair: Pair, inputToken: Token) {
     const route = new Route([pair], inputToken);
 
@@ -103,6 +131,18 @@ export default class UniMonitor {
     ];
   }
 
+  /**
+   * Calculates the potential arbitrage gain between two Uniswap pairs.
+   * @async
+   * @param {string} inputAmount - The amount of the input token to trade.
+   * @param {Percent} slippageTolerance - The maximum slippage tolerance for the trade.
+   * @param {Token} inputToken - The input token for the trade.
+   * @param {Token} outputToken - The output token for the trade.
+   * @param {Pair} pair1 - The first Uniswap pair.
+   * @param {Pair} pair2 - The second Uniswap pair.
+   * @param {Pair} pair3 - The third Uniswap pair.
+   * @returns {Promise<number>} A promise that resolves to the potential arbitrage gain as a number.
+   */
   async calculateArbitrageGain(
     inputAmount: string,
     slippageTolerance: Percent,
