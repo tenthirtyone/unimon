@@ -7,6 +7,8 @@ import {
   USDC_ADDRESS,
   WETH_ADDRESS,
   ONE,
+  TEN,
+  ONE_HUNDRED,
 } from "./constants";
 import {
   Token,
@@ -16,6 +18,7 @@ import {
   Trade,
   TokenAmount,
   TradeType,
+  Percent,
 } from "@uniswap/sdk";
 
 const WETH = new Token(MAINNET, WETH_ADDRESS, 18);
@@ -48,9 +51,27 @@ export default class UniMonitor {
   async onNewBlock(_block: string) {
     const WETH_DAI = await this.getPairData(WETH, DAI);
     const WETH_USDC = await this.getPairData(WETH, USDC);
+    const DAI_USDC = await this.getPairData(DAI, USDC);
 
-    console.log(await this.getPrices(WETH_DAI, WETH));
-    console.log(await this.getPrices(WETH_USDC, WETH));
+    const [WETH_DAI_PRICE] = await this.getPrices(WETH_DAI, WETH);
+    const [WETH_USDC_PRICE] = await this.getPrices(WETH_USDC, WETH);
+
+    const slippageTolerance = new Percent("5", "1000"); // 0.5% slippage tolerance
+
+    const potentialGain = await this.calculateArbitrageGain(
+      ONE_HUNDRED,
+      slippageTolerance,
+      DAI,
+      USDC,
+      WETH_DAI,
+      WETH_USDC,
+      DAI_USDC
+    );
+
+    console.log(`The price of WETH in DAI is: $${WETH_DAI_PRICE}`);
+    console.log(`The price of WETH in USDC is: $${WETH_USDC_PRICE}`);
+    console.log(`Potential arbitrage gain: ${potentialGain}`);
+    console.log("");
   }
 
   async getPairData(tokenA: Token, tokenB: Token): Promise<Pair> {
@@ -62,7 +83,7 @@ export default class UniMonitor {
 
     const trade = new Trade(
       route,
-      new TokenAmount(inputToken, ONE),
+      new TokenAmount(inputToken, TEN),
       TradeType.EXACT_INPUT
     );
 
@@ -80,6 +101,38 @@ export default class UniMonitor {
       trade.executionPrice.invert().toSignificant(6),
       slippagePercent,
     ];
+  }
+
+  async calculateArbitrageGain(
+    inputAmount: string,
+    slippageTolerance: Percent,
+    inputToken: Token,
+    outputToken: Token,
+    pair1: Pair,
+    pair2: Pair,
+    pair3: Pair
+  ) {
+    const directRoute = new Route([pair3], inputToken, outputToken);
+    const indirectRoute = new Route([pair1, pair2], inputToken, outputToken);
+
+    const directTrade = new Trade(
+      directRoute,
+      new TokenAmount(inputToken, inputAmount),
+      TradeType.EXACT_INPUT
+    );
+    const indirectTrade = new Trade(
+      indirectRoute,
+      new TokenAmount(inputToken, inputAmount),
+      TradeType.EXACT_INPUT
+    );
+
+    const directAmountOut = directTrade.minimumAmountOut(slippageTolerance);
+    const indirectAmountOut = indirectTrade.minimumAmountOut(slippageTolerance);
+
+    const potentialGain =
+      parseFloat(indirectAmountOut.toSignificant()) -
+      parseFloat(directAmountOut.toSignificant());
+    return potentialGain;
   }
 }
 
