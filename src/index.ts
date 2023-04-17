@@ -8,7 +8,6 @@ import {
   WETH_ADDRESS,
   ONE,
   TEN,
-  ONE_HUNDRED,
 } from "./constants";
 import {
   Token,
@@ -59,7 +58,7 @@ export default class UniMonitor {
     const slippageTolerance = new Percent("5", "1000"); // 0.5% slippage tolerance
 
     const potentialGain = await this.calculateArbitrageGain(
-      ONE_HUNDRED,
+      ONE,
       slippageTolerance,
       DAI,
       USDC,
@@ -70,8 +69,9 @@ export default class UniMonitor {
 
     console.log(`The price of WETH in DAI is: $${WETH_DAI_PRICE}`);
     console.log(`The price of WETH in USDC is: $${WETH_USDC_PRICE}`);
-    console.log(`Potential arbitrage gain: ${potentialGain}`);
-    console.log("");
+    console.log(
+      `Potential arbitrage gain for ONE WETH from DAI to USDC is : ${potentialGain}`
+    );
   }
 
   async getPairData(tokenA: Token, tokenB: Token): Promise<Pair> {
