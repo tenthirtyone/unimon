@@ -2,9 +2,15 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
 import { MAINNET, DAI_ADDRESS, USDC_ADDRESS, WETH_ADDRESS } from "./constants";
+import { Token, Fetcher } from "@uniswap/sdk";
+
+const WETH = new Token(MAINNET, WETH_ADDRESS, 18);
+const DAI = new Token(MAINNET, DAI_ADDRESS, 18);
+const USDC = new Token(MAINNET, USDC_ADDRESS, 6);
 
 export default class UniMonitor {
   private provider;
+
   constructor() {
     const { INFURA_KEY } = process.env;
     if (!INFURA_KEY) {
@@ -12,6 +18,7 @@ export default class UniMonitor {
     }
 
     this.provider = new ethers.providers.InfuraProvider(MAINNET, INFURA_KEY);
+    this.onNewBlock = this.onNewBlock.bind(this);
 
     process.on("SIGINT", () => {
       console.log("Shutting down, removing listeners");
@@ -24,8 +31,17 @@ export default class UniMonitor {
     this.provider.on("block", this.onNewBlock);
   }
 
-  onNewBlock(block: string) {
+  async onNewBlock(block: string) {
     console.log(block);
+    const WETH_DAI = await this.getPairData(WETH, DAI);
+    const WETH_USDC = await this.getPairData(WETH, USDC);
+
+    console.log(WETH_DAI);
+    console.log(WETH_USDC);
+  }
+
+  async getPairData(tokenA: Token, tokenB: Token) {
+    return await Fetcher.fetchPairData(tokenA, tokenB, this.provider);
   }
 }
 
