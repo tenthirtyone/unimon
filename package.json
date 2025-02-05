@@ -14,7 +14,10 @@
     "@uniswap/sdk": "^3.0.3",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
-    "mocha": "^10.2.0"
+    "jsbi": "^4.3.0",
+    "mocha": "^10.2.0",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.15.11",
